@@ -30,20 +30,17 @@ export default function App() {
   }, []);
 
   // ================================
-  // HOME PAGE UI (Moved into function)
+  // HOME PAGE
   // ================================
   const HomePage = () => (
     <div className="min-h-screen w-full transition relative overflow-hidden">
 
-      {/* Background video */}
+      {/* Background Image */}
       <div className="fixed inset-0 -z-50 overflow-hidden">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
+        <img
+          src="/forest.jpg"
+          alt="background"
           className="w-full h-full object-cover"
-          src="/forest.mp4"
         />
         <div
           className={`absolute inset-0 ${
@@ -79,7 +76,6 @@ export default function App() {
           URL Shortener
         </h1>
 
-        {/* Admin Button */}
         <Link
           to="/admin"
           className="px-5 py-2 rounded-xl bg-purple-600 text-white shadow-lg hover:bg-purple-700 transition"
@@ -109,7 +105,7 @@ export default function App() {
         </p>
       </motion.div>
 
-      {/* Main Form + List + Stats */}
+      {/* Main Form + List */}
       <motion.div
         initial={{ opacity: 0, scale: 0.92 }}
         animate={{ opacity: 1, scale: 1 }}
