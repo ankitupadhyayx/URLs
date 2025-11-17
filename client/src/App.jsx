@@ -136,7 +136,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="text-center py-10 text-sm text-white relative z-20">
-        © {new Date().getFullYear()} URL Shortner Pro — Crafted by Ankit
+        © {new Date().getFullYear()} URL Shortner — Crafted by Ankit Upadhyay 2201431530009
       </footer>
     </div>
   );
