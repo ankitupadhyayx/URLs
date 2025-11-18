@@ -1,11 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeCanvas } from "qrcode.react";
-import { Trash2, ExternalLink, RefreshCw, LogOut } from "lucide-react";
+import { Trash2, ExternalLink, RefreshCw, LogOut, Copy, ArrowUp, ArrowDown } from "lucide-react";
 import StatsChart from "../components/StatsChart";
+import toast, { Toaster } from "react-hot-toast"; // 🌟 ENHANCEMENT 1: Toast Notifications
+
+// Utility function for copy (requires a hook like use-clipboard-copy or manual implementation)
+const copyToClipboard = (text) => {
+  navigator.clipboard.writeText(text);
+  toast.success("URL copied!");
+};
 
 export default function AdminDashboard({
-  dark,
   backendUrl = "https://urls-backend-cm9v.onrender.com",
   logout,
 }) {
@@ -14,6 +20,9 @@ export default function AdminDashboard({
   const [links, setLinks] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // 🌟 ENHANCEMENT 2: Sorting State
+  const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'descending' });
 
   // -------------------------
   // Load all links
@@ -28,16 +37,17 @@ export default function AdminDashboard({
       });
 
       if (!res.ok) {
-        alert("Session expired. Please login again.");
+        toast.error("Session expired. Please login again."); // Use toast
         logout(); // auto logout
         return;
       }
 
       const data = await res.json();
       setLinks(data);
+      toast.success("Links loaded successfully.");
     } catch (err) {
       console.error("Error loading:", err);
-      alert("Error loading links.");
+      toast.error("Error loading links. Check console."); // Use toast
     } finally {
       setLoading(false);
     }
@@ -47,8 +57,7 @@ export default function AdminDashboard({
   // Delete a URL
   // -------------------------
   const deleteLink = async (id) => {
-    const c = window.confirm("Delete this URL?");
-    if (!c) return;
+    if (!window.confirm("Are you sure you want to delete this URL?")) return;
 
     try {
       const res = await fetch(`${API_BASE}/api/url/${id}`, {
@@ -59,15 +68,16 @@ export default function AdminDashboard({
       });
 
       if (!res.ok) {
-        alert("Unauthorized / session expired.");
+        toast.error("Unauthorized / Session expired."); // Use toast
         logout();
         return;
       }
 
       setLinks((prev) => prev.filter((l) => l._id !== id));
+      toast.success("Link deleted successfully."); // Use toast
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Failed to delete");
+      toast.error("Failed to delete."); // Use toast
     }
   };
 
@@ -75,36 +85,67 @@ export default function AdminDashboard({
     loadLinks();
   }, []);
 
-  // Search filter
-  const filteredLinks = links.filter(
-    (l) =>
-      l.originalUrl.toLowerCase().includes(search.toLowerCase()) ||
-      l.shortCode.toLowerCase().includes(search.toLowerCase())
-  );
+  // -------------------------
+  // 🌟 ENHANCEMENT 3: Sorting Logic
+  // -------------------------
+  const sortedLinks = useMemo(() => {
+    let sortableLinks = [...links];
+    if (sortConfig.key) {
+      sortableLinks.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableLinks;
+  }, [links, sortConfig]);
+
+  // -------------------------
+  // 🌟 ENHANCEMENT 4: Filtered and Memoized Links
+  // -------------------------
+  const filteredLinks = useMemo(() => {
+    return sortedLinks.filter(
+      (l) =>
+        l.originalUrl.toLowerCase().includes(search.toLowerCase()) ||
+        l.shortCode.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [sortedLinks, search]);
+  
+  const requestSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return null;
+    return sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />;
+  };
 
   return (
-    <div
-      className={`min-h-screen p-4 md:p-8 lg:p-10 transition-colors ${
-        dark ? "bg-neutral-900 text-white" : "bg-gray-50 text-black"
-      }`}
-    >
+    // 🎨 ENHANCEMENT 5: New High-Contrast Dark UI
+    <div className="min-h-screen p-4 md:p-8 lg:p-10 bg-gray-900 text-white font-sans">
+      <Toaster position="top-right" /> {/* Toast Container */}
+      
       {/* ---------------- Header ---------------- */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
-          Admin Dashboard
+      <div className="flex justify-between items-center mb-10 border-b border-purple-600 pb-4">
+        <h1 className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-sky-500 tracking-wider">
+          URL Admin Console
         </h1>
 
-        <div className="flex items-center gap-3">
-
+        <div className="flex items-center gap-4">
+          
           {/* Reload */}
           <motion.button
             onClick={loadLinks}
             whileTap={{ scale: 0.9 }}
-            className={`p-2 rounded-full ${loading ? "animate-spin" : ""} ${
-              dark
-                ? "bg-neutral-800 text-blue-400"
-                : "bg-white text-blue-600 shadow-md"
-            }`}
+            className={`p-3 rounded-full transition-all duration-300 ${loading ? "animate-spin-slow" : ""} bg-gray-800 text-teal-400 border border-teal-400 hover:bg-teal-400 hover:text-gray-900`}
           >
             <RefreshCw size={20} />
           </motion.button>
@@ -113,7 +154,7 @@ export default function AdminDashboard({
           <motion.button
             onClick={logout}
             whileTap={{ scale: 0.9 }}
-            className="px-4 py-2 flex items-center gap-2 rounded-xl bg-red-600 text-white shadow-lg hover:bg-red-700"
+            className="px-5 py-2.5 flex items-center gap-2 rounded-lg bg-red-600 text-white font-semibold shadow-lg hover:bg-red-700 transition duration-200"
           >
             <LogOut size={18} />
             Logout
@@ -123,96 +164,116 @@ export default function AdminDashboard({
 
       {/* ---------------- Search ---------------- */}
       <motion.input
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search Original or Short URLs..."
-        className={`w-full max-w-xl p-3 rounded-xl border shadow-inner outline-none mb-8 ${
-          dark
-            ? "bg-neutral-800 border-neutral-700 text-white"
-            : "bg-white border-gray-300 text-black"
-        }`}
+        placeholder="Search Original URL or Short Code..."
+        className="w-full max-w-2xl p-4 rounded-xl border border-sky-500 shadow-xl outline-none mb-10 bg-gray-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-sky-400"
       />
 
       {/* ---------------- Chart ---------------- */}
-      <StatsChart links={links} dark={dark} />
+      {/* Assuming StatsChart handles dark mode internally */}
+      <StatsChart links={links} dark={true} /> 
 
       {/* ---------------- Links Table ---------------- */}
-      <h2 className="text-2xl font-semibold mt-10 mb-4">
+      <h2 className="text-3xl font-bold mt-12 mb-6 text-sky-400">
         All Tracked Links ({filteredLinks.length})
       </h2>
 
       <div
-        className={`rounded-xl shadow-xl overflow-x-auto ${
-          dark ? "bg-neutral-800 border-neutral-700" : "bg-white border"
-        }`}
+        className="rounded-xl shadow-2xl overflow-x-auto bg-gray-800 border border-gray-700"
       >
-        <table className="min-w-full divide-y divide-gray-700/50">
+        <table className="min-w-full divide-y divide-gray-700">
           <thead>
-            <tr className="bg-blue-600/90 text-white sticky top-0">
-              <th className="p-3 text-left w-2/5">Original URL</th>
-              <th className="p-3 text-left w-1/5">Short URL</th>
-              <th className="p-3 w-1/12">Clicks</th>
-              <th className="p-3 w-1/12">QR</th>
-              <th className="p-3 w-1/12">Delete</th>
+            <tr className="bg-purple-600 sticky top-0 text-lg">
+              {/* 🌟 ENHANCEMENT: Clickable headers for sorting */}
+              <HeaderCell onClick={() => requestSort('originalUrl')} sortKey="originalUrl" currentSort={sortConfig}>Original URL</HeaderCell>
+              <HeaderCell onClick={() => requestSort('shortCode')} sortKey="shortCode" currentSort={sortConfig}>Short URL</HeaderCell>
+              <HeaderCell onClick={() => requestSort('clicks')} sortKey="clicks" currentSort={sortConfig} className="text-center">Clicks</HeaderCell>
+              <th className="p-4 w-[100px]">QR</th>
+              <th className="p-4 w-[100px]">Delete</th>
             </tr>
           </thead>
 
           <AnimatePresence initial={false}>
-            <tbody className="divide-y divide-gray-700/40">
-              {filteredLinks.map((link, index) => {
+            <tbody className="divide-y divide-gray-700/50">
+              {loading && (
+                <tr>
+                  <td colSpan="5" className="p-8 text-center text-xl text-sky-500">
+                    <RefreshCw size={30} className="inline animate-spin mr-3" /> Loading data...
+                  </td>
+                </tr>
+              )}
+              {!loading && filteredLinks.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="p-8 text-center text-xl text-gray-500">
+                    No links found matching "{search}"
+                  </td>
+                </tr>
+              )}
+              
+              {!loading && filteredLinks.map((link, index) => {
                 const shortUrl = `${API_BASE}/${link.shortCode}`;
 
                 return (
                   <motion.tr
                     key={link._id}
-                    initial={{ opacity: 0, y: -15 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: 40 }}
+                    exit={{ opacity: 0, height: 0 }}
                     transition={{
                       duration: 0.3,
-                      delay: index * 0.03,
+                      delay: index * 0.02,
                     }}
-                    className="transition hover:bg-neutral-700/20"
+                    className="transition hover:bg-gray-700/50"
                   >
-                    <td className="p-3 break-all text-gray-300">
-                      {link.originalUrl}
+                    <td className="p-4 break-all text-gray-300 max-w-xs">{link.originalUrl}</td>
+
+                    <td className="p-4 break-all">
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={shortUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-teal-400 hover:text-teal-300 flex items-center gap-1 font-mono text-sm"
+                        >
+                          {link.shortCode}
+                          <ExternalLink size={14} />
+                        </a>
+                        {/* 🌟 ENHANCEMENT: Copy Button */}
+                        <motion.button
+                           onClick={() => copyToClipboard(shortUrl)}
+                           whileTap={{ scale: 0.8 }}
+                           className="text-gray-400 hover:text-white transition duration-150"
+                        >
+                          <Copy size={16} />
+                        </motion.button>
+                      </div>
                     </td>
 
-                    <td className="p-3 break-all">
-                      <a
-                        href={shortUrl}
-                        target="_blank"
-                        className="text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                      >
-                        {shortUrl}
-                        <ExternalLink size={14} />
-                      </a>
-                    </td>
-
-                    <td className="p-3 text-center font-semibold">
+                    <td className="p-4 text-center font-bold text-lg text-sky-300">
                       {link.clicks}
                     </td>
 
-                    <td className="p-3 flex justify-center">
+                    <td className="p-4 flex justify-center">
                       <QRCodeCanvas
-                        size={50}
+                        size={60}
                         value={shortUrl}
-                        bgColor={dark ? "#2a2a2a" : "#fff"}
-                        fgColor={dark ? "#fff" : "#000"}
+                        bgColor="#1f2937" // Gray-800 background
+                        fgColor="#ffffff"
                       />
                     </td>
 
-                    <td className="p-3 text-center">
+                    <td className="p-4 text-center">
                       <motion.button
                         onClick={() => deleteLink(link._id)}
                         whileTap={{ scale: 0.8 }}
                         whileHover={{ scale: 1.1 }}
-                        className="p-2 rounded-full bg-red-600 hover:bg-red-700 shadow text-white"
+                        className="p-3 rounded-full bg-red-600 hover:bg-red-700 shadow-lg text-white transition-all"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </motion.button>
                     </td>
                   </motion.tr>
@@ -225,3 +286,18 @@ export default function AdminDashboard({
     </div>
   );
 }
+
+// 🌟 Helper component for sortable table headers
+const HeaderCell = ({ children, onClick, sortKey, currentSort, className = "" }) => (
+    <th 
+        className={`p-4 text-left cursor-pointer hover:bg-purple-700 transition duration-150 ${className}`}
+        onClick={onClick}
+    >
+        <div className="flex items-center gap-2 font-bold">
+            {children}
+            {currentSort.key === sortKey && 
+                (currentSort.direction === 'ascending' ? <ArrowUp size={16} /> : <ArrowDown size={16} />)
+            }
+        </div>
+    </th>
+);
