@@ -13,3 +13,7 @@ export async function fetchUrls() {
   const res = await fetch(`${API_BASE}/url/list/all`);
   return res.json();
 }
+export async function deleteUrl(id) {
+    const res = await fetch(`${API_BASE}/url/${id}`, { method: 'DELETE' });
+    return res.json();
+}
