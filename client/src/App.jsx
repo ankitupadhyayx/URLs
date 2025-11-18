@@ -5,6 +5,8 @@ import ShortenForm from "./components/ShortenForm";
 import LinkList from "./components/LinkList";
 import StatsChart from "./components/StatsChart";
 import AdminDashboard from "./pages/AdminDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminLogin from "./pages/AdminLogin";
 
 import { nanoid } from "nanoid";
 import { motion } from "framer-motion";
@@ -18,9 +20,7 @@ export default function App() {
   const [theme, setTheme] = useLocalStorage("theme", "dark");
   const isDark = theme === "dark";
 
-  const toggleTheme = () => {
-    setTheme(isDark ? "light" : "dark");
-  };
+  const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
   // ----------------------------------
   // 🟦 CREATE LOCAL USER ID
@@ -40,10 +40,7 @@ export default function App() {
     try {
       const userId = localStorage.getItem("userId");
 
-      const res = await fetch(
-        `${BACKEND_URL}/api/url/list/user/${userId}`
-      );
-
+      const res = await fetch(`${BACKEND_URL}/api/url/list/user/${userId}`);
       const data = await res.json();
       setLinks(data);
     } catch (error) {
@@ -103,7 +100,7 @@ export default function App() {
         </h1>
 
         <Link
-          to="/admin"
+          to="/admin-login"
           className="px-4 py-2 rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-700"
         >
           Admin Panel
@@ -146,11 +143,7 @@ export default function App() {
 
           <div className="mt-8 mb-4 border-t border-gray-400/40"></div>
 
-          <h2
-            className={`text-3xl font-semibold ${
-              isDark ? "text-white" : "text-black"
-            }`}
-          >
+          <h2 className={`text-3xl font-semibold ${isDark ? "text-white" : "text-black"}`}>
             Your Shortened Links
           </h2>
 
@@ -167,13 +160,12 @@ export default function App() {
 
       {/* Footer */}
       <footer className="w-full bg-neutral-900/90 text-white border-t border-neutral-700/50 py-8">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+        <div className="max-w-6xl mx-auto px-4 flex justify-between">
           <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} URL Shortener.</p>
 
           <a
             href="https://www.instagram.com/ankitupadhyayx"
             target="_blank"
-            rel="noopener noreferrer"
             className="flex items-center gap-1 text-purple-400 hover:text-purple-300"
           >
             <Instagram size={18} />
@@ -184,13 +176,32 @@ export default function App() {
     </div>
   );
 
+  // ----------------------------------
+  // ROUTES (FINAL MERGED)
+  // ----------------------------------
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+
+      {/* SECURE ADMIN ROUTE */}
       <Route
         path="/admin"
-        element={<AdminDashboard dark={isDark} backendUrl={BACKEND_URL} />}
+        element={
+          <ProtectedRoute backendUrl={BACKEND_URL}>
+            <AdminDashboard
+              backendUrl={BACKEND_URL}
+              dark={isDark}
+              logout={() => {
+                localStorage.removeItem("admin-token");
+                window.location.href = "/admin-login";
+              }}
+            />
+          </ProtectedRoute>
+        }
       />
+
+      {/* ADMIN LOGIN PAGE */}
+      <Route path="/admin-login" element={<AdminLogin backendUrl={BACKEND_URL} />} />
     </Routes>
   );
 }
