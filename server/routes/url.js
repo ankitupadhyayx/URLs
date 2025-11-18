@@ -3,24 +3,31 @@ const router = express.Router();
 const { nanoid } = require("nanoid");
 const Url = require("../models/Url");
 
-// Create Short URL
+
+// --------------------------------------
+// ✅ CREATE SHORT URL (WITH userId)
+// --------------------------------------
 router.post("/shorten", async (req, res) => {
-  const { originalUrl } = req.body;
+  const { originalUrl, userId } = req.body;
 
   if (!originalUrl)
     return res.status(400).json({ error: "Original URL is required" });
 
+  if (!userId)
+    return res.status(400).json({ error: "User ID missing" });
+
   try {
-    // Check duplicate
-    const existing = await Url.findOne({ originalUrl });
+    // Check duplicate for SAME user
+    const existing = await Url.findOne({ originalUrl, userId });
     if (existing) return res.json(existing);
 
-    // Create new short URL
+    // Create short code
     const shortCode = nanoid(8);
 
     const newUrl = new Url({
       originalUrl,
       shortCode,
+      userId,
     });
 
     await newUrl.save();
@@ -31,18 +38,40 @@ router.post("/shorten", async (req, res) => {
   }
 });
 
-// Get All URLs
-router.get("/list/all", async (req, res) => {
+
+// --------------------------------------
+// ✅ GET URL LIST → SPECIFIC USER
+// --------------------------------------
+router.get("/list/user/:userId", async (req, res) => {
   try {
-    const urls = await Url.find().sort({ createdAt: -1 });
+    const urls = await Url.find({ userId: req.params.userId })
+      .sort({ createdAt: -1 });
+
     res.json(urls);
   } catch (err) {
-    console.error("List Error:", err);
+    console.error("List User Error:", err);
     res.status(500).json({ error: "Server Error" });
   }
 });
 
-// Delete URL
+
+// --------------------------------------
+// 🔵 ADMIN ROUTE → Get ALL URLs
+// --------------------------------------
+router.get("/list/all", async (_req, res) => {
+  try {
+    const urls = await Url.find().sort({ createdAt: -1 });
+    res.json(urls);
+  } catch (err) {
+    console.error("List All Error:", err);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
+
+// --------------------------------------
+// 🗑 DELETE URL
+// --------------------------------------
 router.delete("/:id", async (req, res) => {
   try {
     await Url.findByIdAndDelete(req.params.id);
@@ -53,8 +82,11 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// Redirect Handler + Click Count
-router.get("/:code", async (req, res) => {
+
+// --------------------------------------
+// 🔗 REDIRECT (placed AFTER /api routes)
+// --------------------------------------
+router.get("/r/:code", async (req, res) => {
   try {
     const record = await Url.findOne({ shortCode: req.params.code });
 
@@ -62,7 +94,6 @@ router.get("/:code", async (req, res) => {
       return res.status(404).json({ error: "URL Not Found" });
     }
 
-    // Update clicks + history
     record.clicks += 1;
     record.clickHistory.push(Date.now());
     await record.save();

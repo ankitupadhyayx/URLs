@@ -11,7 +11,7 @@ export default function ShortenForm({ onCreated }) {
 
     setLoading(true);
 
-    // Small delay for UX smoothness
+    // Smooth delay
     await new Promise((resolve) => setTimeout(resolve, 300));
 
     try {
@@ -20,7 +20,10 @@ export default function ShortenForm({ onCreated }) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ originalUrl: url }),
+          body: JSON.stringify({
+            originalUrl: url,
+            userId: localStorage.getItem("userId"), // ✅ ADDED HERE
+          }),
         }
       );
 
@@ -47,7 +50,6 @@ export default function ShortenForm({ onCreated }) {
                  rounded-2xl shadow-2xl backdrop-blur-xl border border-white/40 dark:border-neutral-700 
                  hover:shadow-3xl transition duration-300"
     >
-      {/* INPUT */}
       <input
         value={url}
         onChange={(e) => setUrl(e.target.value)}
@@ -57,7 +59,6 @@ export default function ShortenForm({ onCreated }) {
                    placeholder-gray-500 shadow-inner text-lg transition-all duration-300"
       />
 
-      {/* BUTTON */}
       <motion.button
         whileTap={{ scale: 0.95 }}
         whileHover={{ scale: 1.05 }}

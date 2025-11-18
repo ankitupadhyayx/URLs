@@ -12,7 +12,7 @@ const urlSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,  // Faster lookup
+      index: true, // Faster lookup
     },
 
     clicks: {
@@ -20,7 +20,13 @@ const urlSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Optional: Track all click timestamps (useful for analytics)
+    // 🔵 NEW FIELD → to store each user's URL separately
+    userId: {
+      type: String,
+      required: true,
+    },
+
+    // Track all click timestamps for analytics
     clickHistory: [
       {
         type: Date,
@@ -29,7 +35,7 @@ const urlSchema = new mongoose.Schema(
     ]
   },
   {
-    timestamps: true,   // adds createdAt, updatedAt automatically
+    timestamps: true, // adds createdAt, updatedAt automatically
   }
 );
 

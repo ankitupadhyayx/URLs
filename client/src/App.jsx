@@ -4,6 +4,7 @@ import ShortenForm from "./components/ShortenForm";
 import LinkList from "./components/LinkList";
 import StatsChart from "./components/StatsChart";
 import AdminDashboard from "./pages/AdminDashboard";
+import { nanoid } from "nanoid";
 
 import { motion } from "framer-motion";
 import useLocalStorage from "use-local-storage";
@@ -19,9 +20,28 @@ export default function App() {
     setTheme(isDark ? "light" : "dark");
   };
 
+  // ----------------------------------
+  // ✅ STORE UNIQUE USER ID LOCALLY
+  // ----------------------------------
+  useEffect(() => {
+    let id = localStorage.getItem("userId");
+    if (!id) {
+      id = nanoid();
+      localStorage.setItem("userId", id);
+    }
+  }, []);
+
+  // ----------------------------------
+  // ✅ LOAD USER-SPECIFIC LINKS
+  // ----------------------------------
   const loadLinks = async () => {
     try {
-      const res = await fetch("https://urls-backend-cm9v.onrender.com/api/url/list/all");
+      const userId = localStorage.getItem("userId");
+
+      const res = await fetch(
+        `https://urls-backend-cm9v.onrender.com/api/url/list/${userId}`
+      );
+
       const data = await res.json();
       setLinks(data);
     } catch (error) {
@@ -36,6 +56,7 @@ export default function App() {
   // HOME PAGE UI
   const HomePage = () => (
     <div className="min-h-screen w-full transition relative overflow-hidden" data-theme={theme}>
+      
       {/* Background Image */}
       <div className="fixed inset-0 -z-50 overflow-hidden">
         <img
@@ -84,6 +105,7 @@ export default function App() {
       </nav>
 
       <div className="p-4 md:p-8 lg:p-10 w-full relative z-20">
+
         {/* Hero Section */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -160,11 +182,18 @@ export default function App() {
     </div>
   );
 
-  // ROUTES
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/admin" element={<AdminDashboard dark={isDark} backendUrl="https://urls-backend-cm9v.onrender.com" />} />
+      <Route
+        path="/admin"
+        element={
+          <AdminDashboard
+            dark={isDark}
+            backendUrl="https://urls-backend-cm9v.onrender.com"
+          />
+        }
+      />
     </Routes>
   );
 }
