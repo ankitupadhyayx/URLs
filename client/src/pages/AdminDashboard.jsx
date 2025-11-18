@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeCanvas } from "qrcode.react";
-import { Trash2, ExternalLink, RefreshCw } from "lucide-react"; // Added RefreshCw icon
+import { Trash2, ExternalLink, RefreshCw } from "lucide-react";
 import StatsChart from "../components/StatsChart";
 
 export default function AdminDashboard({ dark }) {
@@ -9,32 +9,29 @@ export default function AdminDashboard({ dark }) {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Load Links function with loading state and error handling
+  // LIVE BACKEND URL
+  const API_BASE = "https://urls-backend-cm9v.onrender.com";
+
   const loadLinks = async () => {
     setLoading(true);
     try {
-      // Use the full URL if necessary, though relative path `/api/url/list/all` should work if deployed correctly
-      const res = await fetch("http://localhost:5000/api/url/list/all");
-      if (!res.ok) throw new Error('Failed to fetch links');
+      const res = await fetch(`${API_BASE}/api/url/list/all`);
+      if (!res.ok) throw new Error("Failed to fetch links");
       const data = await res.json();
       setLinks(data);
     } catch (error) {
       console.error("Error loading links:", error);
-      // Optional: Display an alert or error message to the user
     } finally {
       setLoading(false);
     }
   };
 
   const deleteLink = async (id) => {
-    const c = window.confirm("Are you sure you want to delete this URL? This action cannot be undone.");
+    const c = window.confirm("Are you sure you want to delete this URL?");
     if (!c) return;
 
     try {
-      // Perform the delete operation
-      await fetch(`http://localhost:5000/api/url/${id}`, { method: "DELETE" });
-      
-      // Remove from frontend state immediately for smooth UI
+      await fetch(`${API_BASE}/api/url/${id}`, { method: "DELETE" });
       setLinks((prev) => prev.filter((l) => l._id !== id));
     } catch (error) {
       console.error("Error deleting link:", error);
@@ -46,25 +43,34 @@ export default function AdminDashboard({ dark }) {
     loadLinks();
   }, []);
 
-  const filteredLinks = links.filter((l) =>
-    l.originalUrl.toLowerCase().includes(search.toLowerCase()) ||
-    l.shortCode.toLowerCase().includes(search.toLowerCase())
+  const filteredLinks = links.filter(
+    (l) =>
+      l.originalUrl.toLowerCase().includes(search.toLowerCase()) ||
+      l.shortCode.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    // Responsive padding and smooth background transition
-    <div className={`p-4 md:p-8 lg:p-10 min-h-screen transition-colors duration-500 ${dark ? "bg-neutral-900 text-white" : "bg-gray-50 text-black"}`}>
-      
-      {/* Header and Refresh Button */}
+    <div
+      className={`p-4 md:p-8 lg:p-10 min-h-screen transition-colors duration-500 ${
+        dark ? "bg-neutral-900 text-white" : "bg-gray-50 text-black"
+      }`}
+    >
+      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-500">
           Admin Dashboard
         </h1>
+
         <motion.button
           onClick={loadLinks}
           whileTap={{ scale: 0.9 }}
-          className={`p-2 rounded-full transition-all duration-300 transform ${loading ? 'animate-spin' : 'hover:scale-110'} 
-                      ${dark ? "bg-neutral-800 text-blue-400" : "bg-white text-blue-600 shadow-md"}`}
+          className={`p-2 rounded-full transition-all duration-300 transform ${
+            loading ? "animate-spin" : "hover:scale-110"
+          } ${
+            dark
+              ? "bg-neutral-800 text-blue-400"
+              : "bg-white text-blue-600 shadow-md"
+          }`}
           title="Refresh Data"
         >
           <RefreshCw size={20} />
@@ -79,8 +85,9 @@ export default function AdminDashboard({ dark }) {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="w-full max-w-xl p-3 rounded-xl border transition-all duration-300 
-                   dark:bg-neutral-800 dark:border-neutral-700 dark:text-white bg-white border-gray-300 text-black 
-                   focus:ring-2 focus:ring-blue-500/50 outline-none mb-8 shadow-inner"
+          dark:bg-neutral-800 dark:border-neutral-700 dark:text-white 
+          bg-white border-gray-300 text-black 
+          focus:ring-2 focus:ring-blue-500/50 outline-none mb-8 shadow-inner"
         placeholder="Search Original or Short URLs..."
       />
 
@@ -88,14 +95,18 @@ export default function AdminDashboard({ dark }) {
       <StatsChart links={links} dark={dark} />
 
       {/* Links Table */}
-      <h2 className={`text-2xl font-semibold mt-10 mb-4 ${dark ? "text-white" : "text-black"}`}>
+      <h2
+        className={`text-2xl font-semibold mt-10 mb-4 ${
+          dark ? "text-white" : "text-black"
+        }`}
+      >
         All Tracked Links ({filteredLinks.length})
       </h2>
 
       <div
-        className={`mt-4 rounded-xl shadow-2xl overflow-x-auto transition-colors duration-500
-          ${dark ? "bg-neutral-800 border-neutral-700" : "bg-white border border-gray-200"} 
-          border`}
+        className={`mt-4 rounded-xl shadow-2xl overflow-x-auto transition-colors duration-500 ${
+          dark ? "bg-neutral-800 border-neutral-700" : "bg-white border border-gray-200"
+        }`}
       >
         <table className="min-w-full divide-y divide-gray-700/50">
           <thead>
@@ -112,29 +123,43 @@ export default function AdminDashboard({ dark }) {
             <tbody className="divide-y dark:divide-neutral-700 divide-gray-200">
               {loading && links.length === 0 ? (
                 <tr className="text-center">
-                  <td colSpan="5" className="p-4 text-gray-500">Loading links...</td>
+                  <td colSpan="5" className="p-4 text-gray-500">
+                    Loading links...
+                  </td>
                 </tr>
               ) : filteredLinks.length === 0 ? (
                 <tr className="text-center">
-                  <td colSpan="5" className="p-4 text-gray-500">No links match your search.</td>
+                  <td colSpan="5" className="p-4 text-gray-500">
+                    No links match your search.
+                  </td>
                 </tr>
               ) : (
                 filteredLinks.map((link, index) => {
-                  const shortUrl = `http://localhost:5000/${link.shortCode}`;
+                  const shortUrl = `${API_BASE}/${link.shortCode}`;
 
                   return (
                     <motion.tr
                       key={link._id}
                       initial={{ opacity: 0, y: -20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: 50, transition: { duration: 0.3 } }}
-                      transition={{ type: "spring", stiffness: 300, damping: 30, delay: index * 0.03 }}
-                      // Highlight on hover
+                      exit={{
+                        opacity: 0,
+                        x: 50,
+                        transition: { duration: 0.3 },
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                        delay: index * 0.03,
+                      }}
                       whileHover={{ backgroundColor: dark ? "#2c2c2c" : "#f5f5f5" }}
                       className="transition-colors duration-200 text-sm"
                     >
                       {/* Original URL */}
-                      <td className="p-3 break-all text-gray-400 max-w-[300px]">{link.originalUrl}</td>
+                      <td className="p-3 break-all text-gray-400 max-w-[300px]">
+                        {link.originalUrl}
+                      </td>
 
                       {/* Short URL */}
                       <td className="p-3">
@@ -149,11 +174,18 @@ export default function AdminDashboard({ dark }) {
                       </td>
 
                       {/* Clicks */}
-                      <td className="p-3 text-center font-semibold text-lg">{link.clicks}</td>
+                      <td className="p-3 text-center font-semibold text-lg">
+                        {link.clicks}
+                      </td>
 
                       {/* QR */}
                       <td className="p-3 flex justify-center">
-                        <QRCodeCanvas size={50} value={shortUrl} fgColor={dark ? "#fff" : "#000"} bgColor={dark ? "#3a3a3a" : "#fff"} />
+                        <QRCodeCanvas
+                          size={50}
+                          value={shortUrl}
+                          fgColor={dark ? "#fff" : "#000"}
+                          bgColor={dark ? "#3a3a3a" : "#fff"}
+                        />
                       </td>
 
                       {/* Delete Button */}

@@ -26,18 +26,18 @@ router.post("/shorten", async (req, res) => {
     await newUrl.save();
     res.json(newUrl);
   } catch (err) {
-    console.error(err);
+    console.error("Shorten Error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// Get all URLs (for frontend listing)
-router.get("/list/all", async (_req, res) => {
+// Get All URLs
+router.get("/list/all", async (req, res) => {
   try {
     const urls = await Url.find().sort({ createdAt: -1 });
     res.json(urls);
   } catch (err) {
-    console.error(err);
+    console.error("List Error:", err);
     res.status(500).json({ error: "Server Error" });
   }
 });
@@ -48,8 +48,29 @@ router.delete("/:id", async (req, res) => {
     await Url.findByIdAndDelete(req.params.id);
     res.json({ message: "Deleted Successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("Delete Error:", err);
     res.status(500).json({ error: "Deletion failed" });
+  }
+});
+
+// Redirect Handler + Click Count
+router.get("/:code", async (req, res) => {
+  try {
+    const record = await Url.findOne({ shortCode: req.params.code });
+
+    if (!record) {
+      return res.status(404).json({ error: "URL Not Found" });
+    }
+
+    // Update clicks + history
+    record.clicks += 1;
+    record.clickHistory.push(Date.now());
+    await record.save();
+
+    return res.redirect(record.originalUrl);
+  } catch (error) {
+    console.error("Redirect Error:", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
