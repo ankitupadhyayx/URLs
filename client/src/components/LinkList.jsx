@@ -10,7 +10,7 @@ export default function LinkList({ links, dark, setLinks }) {
   const [qrOpen, setQrOpen] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
 
-  // ⭐ COPY TEXT FUNCTION
+  // ⭐ COPY FUNCTION
   const copyText = (text, id) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -25,13 +25,12 @@ export default function LinkList({ links, dark, setLinks }) {
     try {
       const res = await fetch(`${BASE_URL}/api/url/${id}`, { method: "DELETE" });
 
-      if (!res.ok) throw new Error("Delete failed on server.");
+      if (!res.ok) throw new Error("Server delete failed");
 
-      // Update frontend list
       setLinks((prev) => prev.filter((l) => l._id !== id));
     } catch (err) {
       console.error("Delete Error:", err);
-      alert("Failed to delete URL. Check your backend server.");
+      alert("Failed to delete URL.");
     }
   };
 
@@ -47,7 +46,8 @@ export default function LinkList({ links, dark, setLinks }) {
     <div className="space-y-4 mt-6">
       <AnimatePresence>
         {links.map((link, index) => {
-          const shortUrl = `${BASE_URL}/r/${link.shortCode}`;
+          // ⭐ FIXED SHORT URL — NOW WORKS!
+          const shortUrl = `${BASE_URL}/${link.shortCode}`;
           const isCopied = copiedId === link._id;
 
           return (
@@ -58,21 +58,21 @@ export default function LinkList({ links, dark, setLinks }) {
               exit={{ opacity: 0, height: 0, padding: 0 }}
               transition={{ duration: 0.4, delay: index * 0.05 }}
               whileHover={{ scale: 1.01 }}
-              className={`relative p-5 rounded-2xl shadow-xl backdrop-blur-md border transition-all duration-300
-                ${dark ? "bg-neutral-900/60 border-neutral-700" : "bg-white/80 border-white/50"}`}
+              className={`relative p-5 rounded-2xl shadow-xl backdrop-blur-md border 
+              ${dark ? "bg-neutral-900/60 border-neutral-700" : "bg-white/80 border-white/50"}`}
             >
-              {/* 🔗 Original URL */}
+              {/* Original URL */}
               <p className={`text-sm break-words ${dark ? "text-gray-300" : "text-gray-800"} opacity-80`}>
                 {link.originalUrl}
               </p>
 
-              {/* 🔗 Short URL */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-3 gap-2">
+              {/* Short URL + Clicks */}
+              <div className="flex flex-col sm:flex-row justify-between mt-3 gap-2">
                 <a
                   href={shortUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-bold text-blue-400 hover:text-blue-300 flex items-center gap-2 text-lg break-all transition"
+                  className="font-bold text-blue-400 hover:text-blue-300 flex items-center gap-2 text-lg break-all"
                 >
                   {shortUrl}
                   <ExternalLink size={16} />
@@ -83,20 +83,20 @@ export default function LinkList({ links, dark, setLinks }) {
                 </span>
               </div>
 
-              {/* BUTTONS */}
+              {/* Buttons */}
               <div className="flex flex-wrap gap-3 mt-5">
-                {/* COPY */}
+                {/* Copy */}
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   whileHover={{ scale: 1.04 }}
                   onClick={() => copyText(shortUrl, link._id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white shadow-lg transition 
-                    ${isCopied ? "bg-green-500" : "bg-blue-600 hover:bg-blue-700"}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white shadow-lg 
+                  ${isCopied ? "bg-green-500" : "bg-blue-600 hover:bg-blue-700"}`}
                 >
                   <Copy size={18} /> {isCopied ? "Copied!" : "Copy"}
                 </motion.button>
 
-                {/* QR CODE */}
+                {/* QR */}
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   whileHover={{ scale: 1.04 }}
@@ -106,7 +106,7 @@ export default function LinkList({ links, dark, setLinks }) {
                   <QrCode size={18} /> QR
                 </motion.button>
 
-                {/* DELETE */}
+                {/* Delete */}
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   whileHover={{ scale: 1.04 }}
@@ -117,7 +117,7 @@ export default function LinkList({ links, dark, setLinks }) {
                 </motion.button>
               </div>
 
-              {/* QR POPUP */}
+              {/* QR Modal */}
               <AnimatePresence>
                 {qrOpen === link._id && (
                   <motion.div
@@ -129,7 +129,7 @@ export default function LinkList({ links, dark, setLinks }) {
                   >
                     <div
                       className={`p-4 rounded-2xl shadow-xl border 
-                        ${dark ? "bg-neutral-800/70 border-neutral-600" : "bg-white/90 border-gray-200"}`}
+                      ${dark ? "bg-neutral-800/70 border-neutral-600" : "bg-white/90 border-gray-200"}`}
                     >
                       <QRCodeCanvas value={shortUrl} size={160} includeMargin={true} />
                     </div>
