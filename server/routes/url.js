@@ -3,6 +3,9 @@ const router = express.Router();
 const { nanoid } = require("nanoid");
 const Url = require("../models/Url");
 
+// 🔐 Admin Auth Middleware
+const requireAuth = require("../middleware/auth");
+
 
 // --------------------------------------
 // ✅ CREATE SHORT URL (WITH userId)
@@ -21,7 +24,6 @@ router.post("/shorten", async (req, res) => {
     const existing = await Url.findOne({ originalUrl, userId });
     if (existing) return res.json(existing);
 
-    // Create short code
     const shortCode = nanoid(8);
 
     const newUrl = new Url({
@@ -56,9 +58,9 @@ router.get("/list/user/:userId", async (req, res) => {
 
 
 // --------------------------------------
-// 🔵 ADMIN ROUTE → Get ALL URLs
+// 🔐 ADMIN ONLY → GET ALL URLs
 // --------------------------------------
-router.get("/list/all", async (_req, res) => {
+router.get("/list/all", requireAuth, async (_req, res) => {
   try {
     const urls = await Url.find().sort({ createdAt: -1 });
     res.json(urls);
@@ -70,9 +72,9 @@ router.get("/list/all", async (_req, res) => {
 
 
 // --------------------------------------
-// 🗑 DELETE URL
+// 🔐 ADMIN ONLY → DELETE URL
 // --------------------------------------
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res) => {
   try {
     await Url.findByIdAndDelete(req.params.id);
     res.json({ message: "Deleted Successfully" });
@@ -84,7 +86,7 @@ router.delete("/:id", async (req, res) => {
 
 
 // --------------------------------------
-// 🔗 REDIRECT (placed AFTER /api routes)
+// 🔗 PUBLIC → REDIRECT SHORT URL
 // --------------------------------------
 router.get("/r/:code", async (req, res) => {
   try {
@@ -95,7 +97,10 @@ router.get("/r/:code", async (req, res) => {
     }
 
     record.clicks += 1;
+
+    if (!record.clickHistory) record.clickHistory = [];
     record.clickHistory.push(Date.now());
+
     await record.save();
 
     return res.redirect(record.originalUrl);
@@ -104,5 +109,6 @@ router.get("/r/:code", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 module.exports = router;
